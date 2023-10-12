@@ -1,0 +1,19 @@
+@startuml
+autonumber
+actor       User       as end_user
+participant "Orchestration Service" as orchestration_service
+participant "Validation Service" as validation_service
+database "Data Catalog" as data_catalog
+database "Strategy Provider" as strategy_provider
+Boundary "Data Bricks" as data_bricks
+participant "Notebook" as notebook
+
+end_user -> orchestration_service : Anonymize
+orchestration_service -> validation_service : Validate
+validation_service -> data_catalog : Validate Data Catalog
+validation_service -> strategy_provider : Validate Strategies
+orchestration_service -> data_bricks : Invoke jobs
+orchestration_service -> end_user : Job created
+data_bricks -> notebook : Execute notebook
+
+@enduml

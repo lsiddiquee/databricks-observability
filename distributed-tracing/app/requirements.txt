@@ -1,0 +1,15 @@
+opencensus
+opencensus-ext-azure
+opencensus-ext-flask
+opencensus-ext-requests
+opencensus-ext-logging
+
+opentelemetry-sdk
+opentelemetry-semantic-conventions
+opentelemetry-instrumentation-flask
+opentelemetry-instrumentation-requests
+
+azure-core-tracing-opentelemetry
+
+azure-monitor-opentelemetry
+azure-monitor-opentelemetry-exporter
