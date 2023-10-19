@@ -6,12 +6,12 @@ info:
 servers:
   - url: "/api"
 paths:
-  /anonymize:
+  /notebook:
     get:
-      operationId: api.anonymize
+      operationId: api.notebook
       responses:
         "200":
-          description: "Status of the anonymization request checked successfully"
+          description: "Status of the notebook request checked successfully"
         "400":
           description: "Bad request, e.g. provided id of the Databricks job does not exist"
         "500":
@@ -21,7 +21,7 @@ paths:
       operationId: api.validate
       responses:
         "200":
-          description: "Status of the anonymization request checked successfully"
+          description: "Status of the validate request checked successfully"
         "400":
           description: "Bad request, e.g. provided id of the Databricks job does not exist"
         "500":

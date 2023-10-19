@@ -17,14 +17,14 @@ import time
 
 logger = logging.getLogger(__name__)
 
-def anonymize():
-    logger.warning("logging warning message in anonymize")
+def notebook():
+    logger.warning("Logging warning message in notebook")
 
     # The tracer needs to be explicitly retrieved from the context as the middleware already creates a tracer, and we want to join to that one.
     # tracer = trace.get_tracer()
     tracer = trace.get_tracer(__name__)
     print(trace.get_current_span().get_span_context())
-    logger.warning("Orchestration invoked")
+    logger.warning("Process to call notebook invoked")
     # Creating a validation span
     with tracer.start_as_current_span(name='invoke-validation'):
         logger.warning("Invoking validation")
@@ -52,7 +52,7 @@ def anonymize():
             TraceContextTextMapPropagator().inject(params) # This injects the tracecontext in the params.
             print(params)
             payload = {
-                "job_id": 739361035815801,
+                "job_id": 120005329150915,
                 "notebook_params": params
             }
 
@@ -68,21 +68,21 @@ def anonymize():
             return response
         
 def validate():
-    logger.critical("logging critical message in validate")
+    logger.critical("Logging critical message in validate")
     print("Request Headers:")
     print(str(request.headers))
 
     tracer = trace.get_tracer(__name__)
     print(trace.get_current_span().get_span_context())
 
-    with tracer.start_as_current_span(name="simulate-purview"):
-        logger.warning(f"Calling purview")
+    with tracer.start_as_current_span(name="simulate-service-a"):
+        logger.warning(f"Calling service A")
         time.sleep(randrange(start=1, stop=3))
-        logger.critical(f"purview responded")
-    with tracer.start_as_current_span(name="simulate-strategy-provider"):
-        logger.warning(f"Calling strategy provider")
+        logger.critical(f"Service A responded")
+    with tracer.start_as_current_span(name="simulate-service-b"):
+        logger.warning(f"Calling Service B")
         time.sleep(randrange(start=1, stop=3))
-        logger.critical(f"strategy provider responded")
+        logger.critical(f"Service B responded")
 
     return {}
 
