@@ -19,16 +19,41 @@ This sample sets up a Flask-based Orchestration API service using the connexion 
   
 Both processes are not actually implemented but contain some dummy code (the artificial sleep durations) because the purpose of this sample is not showing the service itself but rather the integrated OpenTelemetry tracing. For the flow details please refer to [this diagram](./assets/flow.puml). In this sample you will see the logging of every step in the process, creating spans for various operations, and injecting trace contexts where needed, like in the Databricks job parameters.
 
-## Guide to run the sample application
+## Getting Started
 
-### Setting up Azure services
+### Prerequisites
 
-Go to your Azure Portal and manually create the following services:
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
+- [Terraform](https://www.terraform.io/downloads.html)
 
-- Azure Databricks;
-- Application Insights.
+Note: you can also use [Azure Cloud Shell](https://learn.microsoft.com/en-us/azure/cloud-shell/overview) to avoid having to install software locally.
 
-When Azure Databricks is successfully deployed:
+### Installation
+
+- `git clone https://github.com/Azure-Samples/databricks-observability.git`
+
+- `cd distributed-tracing`
+
+- Log in with Azure CLI *(in Azure Cloud Shell, skip this step)*:
+
+  ```shell
+  az login
+  ```
+
+- Run:
+
+  ```shell
+  terraform init
+  terraform apply
+  ```
+
+  When prompted, answer `yes` to deploy the solution.
+
+In case transient deployment errors are reported, run the `terraform apply` command again.
+
+### Further manual configuration of Azure services
+
+With the above steps you should have Azure Databricks successfully deployed. Then, manually:
 
 - Upload `notebooks/distributed_tracing.ipynb` notebook into your Databricks workspace.
 - Copy your Connection string to Application Insights into the right variable (ref `connection_string_to_app_insights`) in the last cell of the notebook.
@@ -39,7 +64,7 @@ When Azure Databricks is successfully deployed:
 To import the .env values:
 
 - Copy the .env.template file into an .env file and fill it as follows:
-  - The DATABRICKS_ENDPOINT is the databricks URL and looks something like <https://adb-number.number2.azuredatabricks.net>
+  - The DATABRICKS_ENDPOINT is the databricks URL and looks something like <https://adb-number.number2.azuredatabricks.net>. This value is also outputted by the terraform script.
   - Go to the databricks endpoint, sign in with Azure AD and create yourself a databricks token in User Settings/Developer/Access Tokens. Use this token for the DATABRICKS_TOKEN value.
 - To use ApplicationInsights tracing, update env variable APPLICATIONINSIGHTS_CONNECTION_STRING, which is used to setup the connection string for AppInsights. You can reuse the connection string from one of the webapps by copying it from the environment in the webapp in the portal.
 
@@ -49,8 +74,16 @@ Use the follow steps to get the Flask API service to run locally:
 
 - `pip install -r requirements.txt`.
 - cd to `distributed-tracing/app/app.py` and `python app.py`.
-- navigate to http://localhost:5000/api/ui/
+- navigate to [http://localhost:5000/api/ui/]
 
 The Databricks notebook can be ran by executing the notebook endpoint. After a slight wait your results should be arriving in Application Insights and look like this:
 
 ![Application Insights Trace](./assets/screenshot_app_insights.png)
+
+## Destroying the solution
+
+Run:
+
+```shell
+terraform destroy
+```
