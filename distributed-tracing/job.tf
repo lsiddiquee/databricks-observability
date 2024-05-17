@@ -1,5 +1,9 @@
 resource "databricks_job" "this" {
   name = var.job_name
+  parameter {
+    name = "traceparent"
+    default = "00-80e1afed08e019fc1110464cfa66635c-7a085853722dc6d2-01"
+  }
   task {
     task_key = var.task_key
     existing_cluster_id = databricks_cluster.this.cluster_id
