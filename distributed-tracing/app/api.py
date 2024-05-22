@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, url_for
 
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
@@ -28,7 +28,7 @@ def notebook():
     # Creating a validation span
     with tracer.start_as_current_span(name='invoke-validation'):
         logger.warning("Invoking validation")
-        response = requests.get("http://localhost:5000/api/validate")
+        response = requests.get(url_for('api.validate'))
         if response.status_code != 200:
             raise ValueError(response.content)
         logger.critical("Invoking validation complete")
@@ -52,7 +52,7 @@ def notebook():
             TraceContextTextMapPropagator().inject(params) # This injects the tracecontext in the params.
             print(params)
             payload = {
-                "job_id": 120005329150915,
+                "job_id": os.environ.get('DATABRICKS_JOB_ID'),
                 "notebook_params": params
             }
 

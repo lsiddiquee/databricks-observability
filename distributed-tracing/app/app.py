@@ -1,6 +1,4 @@
 import logging
-import dotenv
-dotenv.load_dotenv()
 
 import connexion
 
@@ -45,4 +43,4 @@ logging.getLogger(__name__).setLevel(logging.DEBUG)
 app.app.logger.setLevel(logging.DEBUG)
 
 if __name__ == '__main__':
-    app.run(port=5000)
+    app.run()

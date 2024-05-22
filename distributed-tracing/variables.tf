@@ -71,3 +71,15 @@ variable "task_key" {
   type        = string
   default     = "my_task"
 }
+
+variable "webapp_service_plan_name" {
+  description = "A name for the web app service plan."
+  type        = string
+  default     = "my-service-plan"
+}
+
+variable "webapp_name" {
+  description = "A name for the web app."
+  type        = string
+  default     = "my-webapp"
+}

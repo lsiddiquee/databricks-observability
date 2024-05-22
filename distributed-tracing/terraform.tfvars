@@ -14,3 +14,6 @@ notebook_language     = "PYTHON"
 
 job_name = "Distributed Tracing Job"
 task_key = "distributed_tracing_task_key"
+
+webapp_service_plan_name = "webapp-service-plan-distributed-tracing-sample"
+webapp_name              = "webapp-distributed-tracing-sample"

@@ -34,3 +34,8 @@ output "adb_job_id" {
   value = databricks_job.this.id
   description = "The ID of the Databricks job"
 }
+
+output "databricks_token_value" {
+  value     = databricks_token.this.token_value
+  sensitive = true
+}

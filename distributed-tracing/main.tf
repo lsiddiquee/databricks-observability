@@ -2,11 +2,15 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "=3.53.0"
+      version = "3.104.0"
     }
     databricks = {
       source  = "databricks/databricks"
-      version = "=1.14.3"
+      version = "1.44.0"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "3.2.2"
     }
   }
 }
@@ -24,13 +28,16 @@ provider "azurerm" {
   }
 }
 
-provider "databricks" {
-  host = azurerm_databricks_workspace.this.workspace_url
-}
-
 resource "azurerm_resource_group" "this" {
   name     = var.resource_group_name
   location = var.location
+}
+
+resource "azurerm_application_insights" "this" {
+  name                = var.application_insights_name
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  application_type    = "web"
 }
 
 resource "azurerm_databricks_workspace" "this" {
@@ -40,9 +47,6 @@ resource "azurerm_databricks_workspace" "this" {
   sku                 = "standard"
 }
 
-resource "azurerm_application_insights" "this" {
-  name                = var.application_insights_name
-  location            = azurerm_resource_group.this.location
-  resource_group_name = azurerm_resource_group.this.name
-  application_type    = "web"
+provider "databricks" {
+  host = azurerm_databricks_workspace.this.workspace_url
 }
