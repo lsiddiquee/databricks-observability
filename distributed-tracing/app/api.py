@@ -1,4 +1,4 @@
-from flask import request, url_for
+from flask import Blueprint, request, url_for
 
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
@@ -17,6 +17,9 @@ import time
 
 logger = logging.getLogger(__name__)
 
+api_blueprint = Blueprint('api_blueprint',__name__)
+
+@api_blueprint.route('/notebook', methods=['GET'])
 def notebook():
     logger.warning("Logging warning message in notebook")
 
@@ -28,7 +31,7 @@ def notebook():
     # Creating a validation span
     with tracer.start_as_current_span(name='invoke-validation'):
         logger.warning("Invoking validation")
-        response = requests.get(url_for('api.validate'))
+        response = requests.get(url_for('api_blueprint.validate', _external=True))
         if response.status_code != 200:
             raise ValueError(response.content)
         logger.critical("Invoking validation complete")
@@ -53,7 +56,7 @@ def notebook():
             print(params)
             payload = {
                 "job_id": os.environ.get('DATABRICKS_JOB_ID'),
-                "notebook_params": params
+                "job_parameters": params
             }
 
             print(span.get_span_context())
@@ -67,6 +70,7 @@ def notebook():
 
             return response
         
+@api_blueprint.route('/validate', methods=['GET'])
 def validate():
     logger.critical("Logging critical message in validate")
     print("Request Headers:")

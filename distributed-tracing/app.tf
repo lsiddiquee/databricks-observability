@@ -7,19 +7,6 @@ resource "azurerm_service_plan" "this" {
   sku_name            = "B1"
 }
 
-#  Create application deployment zip from local
-resource "null_resource" "zip" {
-  provisioner "local-exec" {
-    command = <<EOT
-      powershell -Command "Compress-Archive -Path ./app/* -DestinationPath ./app.zip -Force"
-    EOT
-  }
-
-  depends_on = [
-    azurerm_service_plan.this
-  ]
-}
-
 # Create the web app, pass in the App Service Plan ID
 resource "azurerm_linux_web_app" "this" {
   name                  = var.webapp_name
@@ -47,8 +34,29 @@ resource "azurerm_linux_web_app" "this" {
       app_settings["SCM_DO_BUILD_DURING_DEPLOYMENT"],
     ]
   }
-  zip_deploy_file = "./app.zip"
-  depends_on = [ 
-    null_resource.zip
+}
+
+#  Create application deployment zip from local and deploy in Azure App Service
+resource "null_resource" "zip" {
+  provisioner "local-exec" {
+    command = <<EOT
+      powershell -Command "Compress-Archive -Path ./app/* -DestinationPath ./app.zip -Force"
+
+      az webapp deployment source config-zip --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --src ./app.zip
+    EOT
+  }
+
+  depends_on = [
+    azurerm_linux_web_app.this
   ]
+}
+
+resource "local_file" "dotenv_file" {
+  filename = "app/.env"
+  content  = templatefile("app/.env.tftpl", {
+    app_insights_connection_string = azurerm_application_insights.this.connection_string,
+    databricks_host = "https://${azurerm_databricks_workspace.this.workspace_url}",
+    databricks_token = databricks_token.this.token_value,
+    databricks_job_id = databricks_job.this.id
+  })
 }
