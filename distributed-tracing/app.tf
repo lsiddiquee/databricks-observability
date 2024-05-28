@@ -11,7 +11,10 @@ data "archive_file" "app_zip" {
   type        = "zip"
   source_dir  = "${path.module}/${var.app_subdirectory}"
   output_path = "${path.module}/app.zip"
-  excludes = [ "${path.module}/${var.app_subdirectory}/.env", "${path.module}/${var.app_subdirectory}/.env.tftpl", "${path.module}/${var.app_subdirectory}/__pycache__" ]
+  excludes = setunion(
+    fileset("${path.module}/${var.app_subdirectory}", "*.env*"),
+    fileset("${path.module}/${var.app_subdirectory}/__pycache__", "*.*")
+  )
 }
 
 # Create the web app, pass in the App Service Plan ID
@@ -21,8 +24,6 @@ resource "azurerm_linux_web_app" "this" {
   location              = azurerm_resource_group.this.location
   service_plan_id       = azurerm_service_plan.this.id
   https_only            = true
-  webdeploy_publish_basic_authentication_enabled = false
-  zip_deploy_file       = data.archive_file.app_zip.output_path
   site_config { 
     minimum_tls_version = "1.2"
     application_stack {
@@ -36,6 +37,10 @@ resource "azurerm_linux_web_app" "this" {
     "DATABRICKS_HOST" = "https://${azurerm_databricks_workspace.this.workspace_url}"
     "DATABRICKS_TOKEN" = databricks_token.this.token_value
     "DATABRICKS_JOB_ID" = databricks_job.this.id
+    "OTEL_SERVICE_NAME" = "Distributed Tracing Sample Service"
+    "OTEL_PYTHON_EXCLUDED_URLS" = "azuredatabricks.net/api/2.0/jobs/run-now"
+    "OTEL_BLRP_SCHEDULE_DELAY" = "500"
+    "OTEL_BSP_SCHEDULE_DELAY" = "500"
   }
   lifecycle {
     ignore_changes = [
@@ -46,10 +51,10 @@ resource "azurerm_linux_web_app" "this" {
 }
 
 #  Create application deployment zip from local and deploy in Azure App Service
-resource "null_resource" "zip" {
+resource "null_resource" "deploy_app" {
   provisioner "local-exec" {
     command = <<EOT
-      az webapp deploy --resource-group ${azurerm_resource_group.this.name} --name${azurerm_linux_web_app.this.name} --src-path ${data.archive_file.app_zip.output_path}
+      az webapp deploy --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --src-path ${data.archive_file.app_zip.output_path}
     EOT
   }
 
