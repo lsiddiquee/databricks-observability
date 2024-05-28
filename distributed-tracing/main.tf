@@ -48,5 +48,16 @@ resource "azurerm_databricks_workspace" "this" {
 }
 
 provider "databricks" {
-  host = azurerm_databricks_workspace.this.workspace_url
+  host                        = azurerm_databricks_workspace.this.workspace_url
+  azure_workspace_resource_id = azurerm_databricks_workspace.this.id
+}
+
+resource "local_file" "dotenv_file" {
+  filename = "${var.app_subdirectory}/.env"
+  content  = templatefile("${var.app_subdirectory}/${var.app_dotenv_template_filename}", {
+    app_insights_connection_string = azurerm_application_insights.this.connection_string,
+    databricks_host = "https://${azurerm_databricks_workspace.this.workspace_url}",
+    databricks_token = databricks_token.this.token_value,
+    databricks_job_id = databricks_job.this.id
+  })
 }

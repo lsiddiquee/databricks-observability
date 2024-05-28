@@ -40,7 +40,7 @@ resource "azurerm_linux_web_app" "this" {
 resource "null_resource" "zip" {
   provisioner "local-exec" {
     command = <<EOT
-      powershell -Command "Compress-Archive -Path ./app/* -DestinationPath ./app.zip -Force"
+      powershell -Command "Compress-Archive -Path ./${var.app_subdirectory}/* -DestinationPath ./app.zip -Force"
 
       az webapp deployment source config-zip --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --src ./app.zip
     EOT
@@ -49,14 +49,4 @@ resource "null_resource" "zip" {
   depends_on = [
     azurerm_linux_web_app.this
   ]
-}
-
-resource "local_file" "dotenv_file" {
-  filename = "app/.env"
-  content  = templatefile("app/.env.tftpl", {
-    app_insights_connection_string = azurerm_application_insights.this.connection_string,
-    databricks_host = "https://${azurerm_databricks_workspace.this.workspace_url}",
-    databricks_token = databricks_token.this.token_value,
-    databricks_job_id = databricks_job.this.id
-  })
 }

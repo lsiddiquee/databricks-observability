@@ -83,3 +83,15 @@ variable "webapp_name" {
   type        = string
   default     = "my-webapp"
 }
+
+variable "app_subdirectory" {
+  description = "A name for the subdirectory for the app."
+  type        = string
+  default     = "app"
+}
+
+variable "app_dotenv_template_filename" {
+  description = "A name of the file which containts the .env template."
+  type        = string
+  default     = ".env.tftpl"
+}
