@@ -1,4 +1,4 @@
-from flask import Blueprint, request, url_for
+from flask import Blueprint
 
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
@@ -8,12 +8,9 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 
 from urllib.parse import urlparse
 
-from random import randrange
-
 import os
 import requests
 import logging
-import time
 
 logger = logging.getLogger(__name__)
 
@@ -24,17 +21,9 @@ def notebook():
     logger.warning("Logging warning message in notebook")
 
     # The tracer needs to be explicitly retrieved from the context as the middleware already creates a tracer, and we want to join to that one.
-    # tracer = trace.get_tracer()
     tracer = trace.get_tracer(__name__)
     print(trace.get_current_span().get_span_context())
     logger.warning("Process to call notebook invoked")
-    # Creating a validation span
-    with tracer.start_as_current_span(name='invoke-validation'):
-        logger.warning("Invoking validation")
-        response = requests.get(url_for('api_blueprint.validate', _external=True))
-        if response.status_code != 200:
-            raise ValueError(response.content)
-        logger.critical("Invoking validation complete")
 
     # Creating a jobs api invocation span
     with tracer.start_as_current_span(name='invoke-jobs-api'):
@@ -50,7 +39,7 @@ def notebook():
 
         run_now_url = f"{_api_endpoint}/api/2.0/jobs/run-now"
 
-        with tracer.start_as_current_span(name="test", kind=SpanKind.CLIENT) as span:
+        with tracer.start_as_current_span(name="this_value_will_be_updated_later", kind=SpanKind.CLIENT) as span:
             params = {}
             TraceContextTextMapPropagator().inject(params) # This injects the tracecontext in the params.
             print(params)
@@ -69,28 +58,7 @@ def notebook():
             response["operation_id"] = hex(span.get_span_context().trace_id)
 
             return response
-        
-@api_blueprint.route('/validate', methods=['GET'])
-def validate():
-    logger.critical("Logging critical message in validate")
-    print("Request Headers:")
-    print(str(request.headers))
 
-    tracer = trace.get_tracer(__name__)
-    print(trace.get_current_span().get_span_context())
-
-    with tracer.start_as_current_span(name="simulate-service-a"):
-        logger.warning(f"Calling service A")
-        time.sleep(randrange(start=1, stop=3))
-        logger.critical(f"Service A responded")
-    with tracer.start_as_current_span(name="simulate-service-b"):
-        logger.warning(f"Calling Service B")
-        time.sleep(randrange(start=1, stop=3))
-        logger.critical(f"Service B responded")
-
-    return {}
-
-    
 def handle_request_post_with_span(span, url, headers, payload):
 
     parsed_url = urlparse(url)

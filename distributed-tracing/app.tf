@@ -7,20 +7,29 @@ resource "azurerm_service_plan" "this" {
   sku_name            = "B1"
 }
 
+data "archive_file" "app_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/${var.app_subdirectory}"
+  output_path = "${path.module}/app.zip"
+  excludes = [ "${path.module}/${var.app_subdirectory}/.env", "${path.module}/${var.app_subdirectory}/.env.tftpl", "${path.module}/${var.app_subdirectory}/__pycache__" ]
+}
+
 # Create the web app, pass in the App Service Plan ID
 resource "azurerm_linux_web_app" "this" {
   name                  = var.webapp_name
-  resource_group_name = azurerm_resource_group.this.name
-  location            = azurerm_resource_group.this.location
+  resource_group_name   = azurerm_resource_group.this.name
+  location              = azurerm_resource_group.this.location
   service_plan_id       = azurerm_service_plan.this.id
   https_only            = true
+  webdeploy_publish_basic_authentication_enabled = false
+  zip_deploy_file       = data.archive_file.app_zip.output_path
   site_config { 
     minimum_tls_version = "1.2"
     application_stack {
-      python_version = "3.11"
+      python_version    = "3.11"
     }
   }
-  app_settings = {
+  app_settings          = {
     "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
     "SCM_DO_BUILD_DURING_DEPLOYMENT"      = "true"
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.this.connection_string
@@ -40,9 +49,7 @@ resource "azurerm_linux_web_app" "this" {
 resource "null_resource" "zip" {
   provisioner "local-exec" {
     command = <<EOT
-      powershell -Command "Compress-Archive -Path ./${var.app_subdirectory}/* -DestinationPath ./app.zip -Force"
-
-      az webapp deployment source config-zip --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --src ./app.zip
+      az webapp deploy --resource-group ${azurerm_resource_group.this.name} --name${azurerm_linux_web_app.this.name} --src-path ${data.archive_file.app_zip.output_path}
     EOT
   }
 
