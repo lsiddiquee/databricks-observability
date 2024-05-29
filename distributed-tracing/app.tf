@@ -13,7 +13,7 @@ data "archive_file" "app_zip" {
   output_path = "${path.module}/app.zip"
   excludes = setunion(
     fileset("${path.module}/${var.app_subdirectory}", "*.env*"),
-    fileset("${path.module}/${var.app_subdirectory}/__pycache__", "*.*")
+    fileset("${path.module}/${var.app_subdirectory}", "__pycache__/**")
   )
 }
 
