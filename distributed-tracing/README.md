@@ -1,6 +1,6 @@
 # Enabling Distributed Tracing for Python Notebooks: Unleashing the Power of Observability
 
-This sample illustrates the collection of metrics, traces and logs accross various services and from within Databricks notebooks using OpenTelemetry.
+This sample illustrates the how to collect tracing spanning application boundary. Specifically a request originating in a python application triggering a Databricks notebooks using OpenTelemetry.
 
 It showcases a sample Flask-based API Orchestration service which can invoke a Databricks job and implements a robust distributed tracing solution using the OpenTelemetry library for Python. By leveraging distributed tracing, we aim to gain end-to-end visibility into request flows across our distributed system, enabling us to effectively diagnose and optimize performance, identify bottlenecks, and improve overall system reliability. OpenTelemetry provides a standardized and vendor-agnostic approach to distributed tracing, making it suitable for our architecture.
 
@@ -12,12 +12,22 @@ All of the data is pushed to Azure Monitoring using OpenTelemetry Azure Exporter
 
 ## The API service explained
 
-This sample sets up a Flask-based Orchestration API service using the connexion library. The service is designed for a dummy ETL process and has 2 main endpoints:
+This sample sets up a Flask-based Orchestration API service. The service is designed for a dummy ETL process and has 2 main endpoints:
 
 - `/notebook`: invokes a Databricks job which runs a notebook. It first calls the `/validate` endpoint and consequently invokes the Databricks job. The notebook simulates ETL steps represented by artificial sleep durations.
 - `/validate`: simulates a validation process by calling two external services, service A and service B. Both are represented by artificial sleep durations.
   
-Both processes are not actually implemented but contain some dummy code (the artificial sleep durations) because the purpose of this sample is not showing the service itself but rather the integrated OpenTelemetry tracing. For the flow details please refer to [this diagram](./assets/flow.puml). In this sample you will see the logging of every step in the process, creating spans for various operations, and injecting trace contexts where needed, like in the Databricks job parameters.
+![Application flow](./assets/flow.png)
+
+Both processes are not actually implemented but contain some dummy code (the artificial sleep durations) because the purpose of this sample is not showing the service itself but rather the integrated OpenTelemetry tracing. In this sample you will see the logging of every step in the process, creating spans for various operations, and injecting trace contexts where needed, like in the Databricks job parameters.
+
+## Propagation explained
+
+The crucial bit of code is in `app/api.py` in the ```notebook``` method. We are doing two major things to support flowing of traces from the python application to our notebook/job. We know that in order for distributed traces to work and flow across application boundaries, we need to retrieve the last span context and pass it along to the external application. The external application can then start a new span with the passed in span context to join the same tracing context, giving us a trace which flows across application boundary.
+
+The out-of-the-box OpenTelemetry `request` integration creates a new span and passes it along as a header, but, we cannot use that, as the span information will be in the HTTP request header and will not be propagated to the underlying notebook/job. Hence we will be suppressing the `request` integration so that it does not create a new span automatically by using ```OTEL_PYTHON_EXCLUDED_URLS=azuredatabricks.net/api/2.0/jobs/run-now``` environment variable. Once this is suppressed, we will manually create the span and set the necessary span information and pass the context along as a job parameter to the databricks.
+
+Inside the notebook, we will pick up the context from the parameter and start a span. All nested spans created regardless if it is in a library or directly on the notebook will join the existing trace context, giving us a complete distributed trace across application boundary.
 
 ## Getting Started
 
@@ -51,34 +61,21 @@ Note: you can also use [Azure Cloud Shell](https://learn.microsoft.com/en-us/azu
 
 In case transient deployment errors are reported, run the `terraform apply` command again.
 
-### Further manual configuration of Azure services
+### Deployed resources
 
-With the above steps you should have Azure Databricks successfully deployed. Then, manually:
+The sample deploys the following Azure resources:
 
-- Upload `notebooks/distributed_tracing.ipynb` notebook into your Databricks workspace.
-- Copy your Connection string to Application Insights into the right variable (ref `connection_string_to_app_insights`) in the last cell of the notebook.
-- Create a job that runs this notebook and copy the job id into line 55 of `api.py`.
+- Databricks workspace
+- App service
+- Linux web app
 
-### Importing env values
+### Using the sample
 
-To import the .env values:
-
-- Copy the .env.template file into an .env file and fill it as follows:
-  - The DATABRICKS_ENDPOINT is the databricks URL and looks something like <https://adb-number.number2.azuredatabricks.net>. This value is also outputted by the terraform script.
-  - Go to the databricks endpoint, sign in with Azure AD and create yourself a databricks token in User Settings/Developer/Access Tokens. Use this token for the DATABRICKS_TOKEN value.
-- To use ApplicationInsights tracing, update env variable APPLICATIONINSIGHTS_CONNECTION_STRING, which is used to setup the connection string for AppInsights. You can reuse the connection string from one of the webapps by copying it from the environment in the webapp in the portal.
-
-## Run your application locally
-
-Use the follow steps to get the Flask API service to run locally:
-
-- `pip install -r requirements.txt`.
-- cd to `distributed-tracing/app/app.py` and `python app.py`.
-- navigate to [http://localhost:5000/api/ui/]
-
-The Databricks notebook can be ran by executing the notebook endpoint. After a slight wait your results should be arriving in Application Insights and look like this:
+Once the terraform is deployed, it outputs ```application_endpoint```. You can access this endpoint using the browser. The Databricks notebook can be ran by executing the notebook endpoint. After a slight wait your results should be arriving in Application Insights and look like this:
 
 ![Application Insights Trace](./assets/screenshot_app_insights.png)
+
+The `app` folder also contains the necessary code with updated .env file which you can run locally.
 
 ## Destroying the solution
 
