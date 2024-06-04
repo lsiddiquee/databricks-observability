@@ -32,6 +32,16 @@ resource "databricks_job" "this" {
     notebook_task {
       notebook_path = databricks_notebook.this.path
     }
+    library {
+      pypi {
+        package = "opentelemetry-sdk==1.24.0"
+      }
+    }
+    library {
+      pypi {
+        package = "azure-monitor-opentelemetry==1.4.2"
+      }
+    }
   }
   email_notifications {
     on_success = [ data.databricks_current_user.me.user_name ]

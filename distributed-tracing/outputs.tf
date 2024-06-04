@@ -3,13 +3,12 @@ output "resource_group_name" {
   description = "The name of the resource group"
 }
 
-output "databricks_workspace_id" {
-  value = azurerm_databricks_workspace.this.id
-  description = "The ID of the Databricks workspace"
+output "application_endpoint" {
+  value = "https://${azurerm_linux_web_app.this.default_hostname}/notebook"
 }
 
 output "databricks_workspace_url" {
-  value = azurerm_databricks_workspace.this.workspace_url
+  value = "https://${azurerm_databricks_workspace.this.workspace_url}"
   description = "The URL of the Databricks workspace"
 }
 
@@ -18,24 +17,10 @@ output "application_insights_id" {
   description = "The ID of the Application Insights instance"
 }
 
-output "cluster_url" {
- value = databricks_cluster.this.url
-}
-
 output "notebook_url" {
  value = databricks_notebook.this.url
 }
 
 output "job_url" {
   value = databricks_job.this.url
-}
-
-output "adb_job_id" {
-  value = databricks_job.this.id
-  description = "The ID of the Databricks job"
-}
-
-output "databricks_token_value" {
-  value     = databricks_token.this.token_value
-  sensitive = true
 }

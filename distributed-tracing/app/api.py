@@ -1,4 +1,4 @@
-from flask import Blueprint
+from flask import Blueprint, request, url_for
 
 from opentelemetry import trace
 from opentelemetry.trace import SpanKind
@@ -6,11 +6,13 @@ from opentelemetry.semconv.trace import SpanAttributes
 from opentelemetry.trace.status import StatusCode
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
-from urllib.parse import urlparse
-
 import os
 import requests
 import logging
+import time
+
+from urllib.parse import urlparse
+from random import randrange
 
 logger = logging.getLogger(__name__)
 
@@ -18,16 +20,25 @@ api_blueprint = Blueprint('api_blueprint',__name__)
 
 @api_blueprint.route('/notebook', methods=['GET'])
 def notebook():
-    logger.warning("Logging warning message in notebook")
+    logger.info("Logging warning message in notebook")
 
     # The tracer needs to be explicitly retrieved from the context as the middleware already creates a tracer, and we want to join to that one.
     tracer = trace.get_tracer(__name__)
-    print(trace.get_current_span().get_span_context())
-    logger.warning("Process to call notebook invoked")
+
+    logger.info("Process to call notebook invoked")
+
+    # Creating a validation span
+    with tracer.start_as_current_span(name='invoke-validation'):
+        logger.info("Invoking validation")
+        scheme = request.headers.get('X-Forwarded-Proto', request.scheme)
+        response = requests.get(url_for('api_blueprint.validate', _external=True, _scheme=scheme))
+        if response.status_code != 200:
+            raise ValueError(response.content)
+        logger.info("Invoking validation complete")
 
     # Creating a jobs api invocation span
     with tracer.start_as_current_span(name='invoke-jobs-api'):
-        logger.warning("Invoking jobs api")
+        logger.info("Invoking jobs api")
 
         _api_endpoint = os.environ.get('DATABRICKS_HOST').removesuffix('/')
         _api_token = os.environ.get('DATABRICKS_TOKEN')
@@ -42,13 +53,11 @@ def notebook():
         with tracer.start_as_current_span(name="this_value_will_be_updated_later", kind=SpanKind.CLIENT) as span:
             params = {}
             TraceContextTextMapPropagator().inject(params) # This injects the tracecontext in the params.
-            print(params)
             payload = {
                 "job_id": os.environ.get('DATABRICKS_JOB_ID'),
                 "job_parameters": params
             }
 
-            print(span.get_span_context())
             response = handle_request_post_with_span(
                     span=span,
                     url=run_now_url,
@@ -58,6 +67,24 @@ def notebook():
             response["operation_id"] = hex(span.get_span_context().trace_id)
 
             return response
+
+@api_blueprint.route('/validate', methods=['GET'])
+def validate():
+    logger.info("Logging critical message in validate")
+
+    tracer = trace.get_tracer(__name__)
+
+    with tracer.start_as_current_span(name="simulate-service-a"):
+        logger.warning(f"Calling service A")
+        time.sleep(randrange(start=1, stop=3))
+        logger.critical(f"Service A responded")
+    with tracer.start_as_current_span(name="simulate-service-b"):
+        logger.warning(f"Calling Service B")
+        time.sleep(randrange(start=1, stop=3))
+        logger.critical(f"Service B responded")
+
+    return {}
+
 
 def handle_request_post_with_span(span, url, headers, payload):
 

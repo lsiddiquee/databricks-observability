@@ -7,6 +7,7 @@ resource "azurerm_service_plan" "this" {
   sku_name            = "B1"
 }
 
+#  Create application deployment zip from local
 data "archive_file" "app_zip" {
   type        = "zip"
   source_dir  = "${path.module}/${var.app_subdirectory}"
@@ -17,9 +18,14 @@ data "archive_file" "app_zip" {
   )
 }
 
+# Create a random ID to ensure unique app name
+resource "random_id" "app_name_suffix" {
+  byte_length = 8
+}
+
 # Create the web app, pass in the App Service Plan ID
 resource "azurerm_linux_web_app" "this" {
-  name                  = var.webapp_name
+  name                  = lower("${var.webapp_name}-${random_id.app_name_suffix.hex}")
   resource_group_name   = azurerm_resource_group.this.name
   location              = azurerm_resource_group.this.location
   service_plan_id       = azurerm_service_plan.this.id
@@ -50,15 +56,22 @@ resource "azurerm_linux_web_app" "this" {
   }
 }
 
-#  Create application deployment zip from local and deploy in Azure App Service
+#  Deploy in Azure App Service
 resource "null_resource" "deploy_app" {
   provisioner "local-exec" {
-    command = <<EOT
-      az webapp deploy --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --src-path ${data.archive_file.app_zip.output_path}
-    EOT
+    command = "az webapp deploy --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --src-path ${data.archive_file.app_zip.output_path} --timeout 1000000"
   }
-
   depends_on = [
     azurerm_linux_web_app.this
+  ]
+}
+
+#  Setup custom startup command to allow to set worker count
+resource "null_resource" "app_increase_worker_count" {
+  provisioner "local-exec" {
+    command = "az webapp config set --resource-group ${azurerm_resource_group.this.name} --name ${azurerm_linux_web_app.this.name} --startup-file start.sh"
+  }
+  depends_on = [
+    null_resource.deploy_app
   ]
 }
