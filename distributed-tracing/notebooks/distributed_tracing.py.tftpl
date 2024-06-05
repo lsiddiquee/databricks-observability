@@ -51,7 +51,7 @@ if trace_context is not None:
     caller_context = extract({ "traceparent": trace_context })
 else:
     caller_context = None
-span = tracer.start_span(name="Notebook Invoked", context=caller_context, kind=SpanKind.PRODUCER)
+span = tracer.start_span(name="Notebook Invoked", context=caller_context, kind=SpanKind.CONSUMER)
 
 
 # COMMAND ----------

@@ -29,6 +29,8 @@ The out-of-the-box OpenTelemetry `request` integration creates a new span and pa
 
 Inside the notebook, we will pick up the context from the parameter and start a span. All nested spans created regardless if it is in a library or directly on the notebook will join the existing trace context, giving us a complete distributed trace across application boundary. The notebook also showcases how to ensure that spans are joining distributed tracing even if they are in multiple cells.
 
+The sample also illustrates how to capture the time taken between the job request was posted and the job was executed. This is done using ```SpanKind.PRODUCER``` for the application and ```SpanKind.CONSUMER``` in the notebook.
+
 ## Getting Started
 
 ### Prerequisites
