@@ -27,7 +27,7 @@ The crucial bit of code is in `app/api.py` in the ```notebook``` method. We are 
 
 The out-of-the-box OpenTelemetry `request` integration creates a new span and passes it along as a header, but, we cannot use that, as the span information will be in the HTTP request header and will not be propagated to the underlying notebook/job. Hence we will be suppressing the `request` integration so that it does not create a new span automatically by using ```OTEL_PYTHON_EXCLUDED_URLS=azuredatabricks.net/api/2.0/jobs/run-now``` environment variable. Once this is suppressed, we will manually create the span and set the necessary span information and pass the context along as a job parameter to the databricks.
 
-Inside the notebook, we will pick up the context from the parameter and start a span. All nested spans created regardless if it is in a library or directly on the notebook will join the existing trace context, giving us a complete distributed trace across application boundary.
+Inside the notebook, we will pick up the context from the parameter and start a span. All nested spans created regardless if it is in a library or directly on the notebook will join the existing trace context, giving us a complete distributed trace across application boundary. The notebook also showcases how to ensure that spans are joining distributed tracing even if they are in multiple cells.
 
 ## Getting Started
 
@@ -60,6 +60,8 @@ Note: you can also use [Azure Cloud Shell](https://learn.microsoft.com/en-us/azu
   When prompted, answer `yes` to deploy the solution.
 
 In case transient deployment errors are reported, run the `terraform apply` command again.
+
+> There might be timeout during the `null_resource.deploy_app` resource creation. Please re-run ```terraform apply``` and it should be fine. You can also run the application locally. The `.env` file is patched with all the necessary values during terraform resource creation.
 
 ### Deployed resources
 

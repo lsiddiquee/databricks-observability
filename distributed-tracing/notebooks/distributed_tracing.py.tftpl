@@ -9,23 +9,13 @@
 
 # MAGIC %md
 # MAGIC ## Setup
-# MAGIC
-# MAGIC Removing all existing widgets and installing the needed traceparent widget. This cell is commented as the widget should already be present in this notebook, if not: uncomment and run it before you comment it again.
-
-# COMMAND ----------
-
-trace_context = dbutils.widgets.get("traceparent")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Execution 
 
 # COMMAND ----------
 
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.propagate import extract
+from opentelemetry.trace import SpanKind
 
 from azure.monitor.opentelemetry import configure_azure_monitor
 
@@ -43,24 +33,92 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 logger.info("Inside notebook")
+
+trace_context = dbutils.widgets.get("traceparent")
+tracer = trace.get_tracer(__name__)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Initializing span to join the tracing session started externally
+# MAGIC
+
+# COMMAND ----------
+
 logger.info(f"Attempt to join an existing trace session with context: {trace_context}")
 
-headers = {
-    "traceparent": trace_context
-}
+if trace_context is not None:
+    caller_context = extract({ "traceparent": trace_context })
+else:
+    caller_context = None
+span = tracer.start_span(name="Notebook Invoked", context=caller_context, kind=SpanKind.PRODUCER)
 
-print(headers)
 
-# Explicitly the tracer is being created in here to ensure that we create it with the correct context from the headers.
-tracer = trace.get_tracer(__name__)
-with tracer.start_as_current_span(name="Notebook Invoked", context=extract(headers)) as span:
-    print(span.get_span_context())
-    with tracer.start_as_current_span(name='extract'):
-        logger.info("Extract")
-        time.sleep(randrange(start=3, stop=10))
-    with tracer.start_as_current_span(name='transform'):
-        logger.info("Transform")
-        time.sleep(randrange(start=3, stop=10))
-    with tracer.start_as_current_span(name='load'):
-        logger.info("Load")
-        time.sleep(randrange(start=3, stop=10))
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Extract step
+
+# COMMAND ----------
+
+try:
+    # Initializing an existing span context in the cell to ensure subsequent spans joins the distributed span
+    with trace.use_span(span):
+        with tracer.start_as_current_span(name='extract'):
+            logger.info("Extract")
+            time.sleep(randrange(start=3, stop=10))
+except Exception as e:
+    logger.exception(e)
+    # As there is an exception and the "Notebook Invoked" span was not created using a 'with' block forcefully ending the span.
+    span.end()
+    raise
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Transform
+
+# COMMAND ----------
+
+try:
+    # Initializing an existing span context in the cell to ensure subsequent spans joins the distributed span
+    with trace.use_span(span):
+        with tracer.start_as_current_span(name='transform'):
+            logger.info("Transform")
+            time.sleep(randrange(start=3, stop=10))
+except Exception as e:
+    logger.exception(e)
+    # As there is an exception and the "Notebook Invoked" span was not created using a 'with' block forcefully ending the span.
+    span.end()
+    raise
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Load
+
+# COMMAND ----------
+
+try:
+    # Initializing an existing span context in the cell to ensure subsequent spans joins the distributed span
+    with trace.use_span(span):
+        with tracer.start_as_current_span(name='load'):
+            logger.info("Load")
+            time.sleep(randrange(start=3, stop=10))
+except Exception as e:
+    logger.exception(e)
+    # As there is an exception and the "Notebook Invoked" span was not created using a 'with' block forcefully ending the span.
+    span.end()
+    raise
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Gracefully closing the span
+
+# COMMAND ----------
+
+span.end()
