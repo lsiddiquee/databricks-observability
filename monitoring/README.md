@@ -29,7 +29,7 @@ Note: you can also use [Azure Cloud Shell](https://learn.microsoft.com/en-us/azu
 
 * `git clone https://github.com/Azure-Samples/databricks-observability.git`
 
-* `cd databricks-observability`
+* `cd databricks-observability/monitoring`
 
 * Download the latest [Application Insights Java agent JAR](https://github.com/microsoft/ApplicationInsights-Java/releases) to the project directory. Rename the file to `applicationinsights-agent.jar` in the repository folder.
 

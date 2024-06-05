@@ -57,7 +57,7 @@ Note: You can also use [Azure Cloud Shell](https://learn.microsoft.com/en-us/azu
 
 2. Navigate to the directory:
    ```shell
-   cd distributed-tracing
+   cd databricks-observability/distributed-tracing
    ```
 
 3. Log in with Azure CLI (skip this step if using Azure Cloud Shell):
