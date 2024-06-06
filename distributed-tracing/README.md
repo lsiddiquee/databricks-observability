@@ -4,11 +4,15 @@ This sample illustrates how to collect tracing spanning application boundaries, 
 
 It showcases a sample Flask-based API orchestration service that can invoke a Databricks job and implements a robust distributed tracing solution using the OpenTelemetry library for Python. By leveraging distributed tracing, we aim to gain end-to-end visibility into request flows across our distributed system. This enables us to effectively diagnose and optimize performance, identify bottlenecks, and improve overall system reliability. OpenTelemetry provides a standardized and vendor-agnostic approach to distributed tracing, making it suitable for our architecture.
 
+![Application Insights Application Map](./assets/screenshot_app_insights_app_map.png)
+
+![Application Insights Trace](./assets/screenshot_app_insights.png)
+
 ## Key Concepts
 
 ### Trace Context Propagation
 
-To trace requests across various services, we implemented trace context propagation. This involves adding trace identifiers to requests and propagating them across service boundaries. OpenTelemetry provides built-in mechanisms for propagating trace context, ensuring consistency and continuity of traces across different components.
+To trace requests across various services, we implemented trace context propagation. This involves adding trace identifiers to requests and propagating them across service boundaries. OpenTelemetry provides built-in mechanisms for propagating trace context, ensuring consistency and continuity of traces across different components. However, in our case we needed to manually pass along the trace context along with creation of trace spans with correct types.
 
 ### Instrumentation
 
@@ -88,8 +92,6 @@ The sample deploys the following Azure resources:
 ### Using the Sample
 
 Once Terraform is deployed, it outputs `application_endpoint`. You can access this endpoint using a browser. The Databricks notebook can be run by executing the notebook endpoint. After a slight wait, your results should appear in Application Insights and look like this:
-
-![Application Insights Trace](./assets/screenshot_app_insights.png)
 
 The `app` folder contains the necessary code with an updated .env file, which you can run locally.
 
